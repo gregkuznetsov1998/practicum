@@ -1,0 +1,17 @@
+@startuml ERDiagram
+title ER-диаграмма - Управление сенсорами
+
+entity sensors {
+  *id : INTEGER <<PK>>
+  --
+  name : VARCHAR(100) <<NN>>
+  type : VARCHAR(50) <<NN>>
+  location : VARCHAR(100) <<NN>>
+  value : FLOAT <<default 0>>
+  unit : VARCHAR(20)
+  status : VARCHAR(20) <<default 'inactive'>>
+  last_updated : TIMESTAMP <<default CURRENT_TIMESTAMP>>
+  created_at : TIMESTAMP <<default CURRENT_TIMESTAMP>>
+}
+
+@enduml
