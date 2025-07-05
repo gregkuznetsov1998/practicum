@@ -1,48 +1,123 @@
-using System.Text.Json;
+using System.Data;
+using Dapper;
 using Microsoft.AspNetCore.Mvc;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddScoped<IDbConnection>(_ => 
+    new NpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection")));
 var app = builder.Build();
+
+app.MapGet("/health", () => "OK");
 
 var devicesGroup = app.MapGroup("api/v1/sensors");
 
-// Получение всех устройств
-devicesGroup.MapGet("/", () =>
+var sensorsGroup = app.MapGroup("api/v1/sensors");
+
+// Получение всех сенсоров
+sensorsGroup.MapGet("/", async (IDbConnection db) =>
 {
-    return Results.Ok(new[] { new { Id = 1, Name = "Sensor 1" } });
+    var sensors = await db.QueryAsync<Sensor>("SELECT * FROM sensors");
+    return Results.Ok(sensors);
 });
 
-// Получение устройства по ID
-devicesGroup.MapGet("/{id}", (int id) =>
+// Получение сенсора по ID
+sensorsGroup.MapGet("/{id}", async (int id, IDbConnection db) =>
 {
-    return Results.Ok(new { Id = id, Name = $"Sensor {id}" });
-}).WithName("GetDevice");
+    var sensor = await db.QueryFirstOrDefaultAsync<Sensor>(
+        "SELECT * FROM sensors WHERE id = @Id", new { Id = id });
+    return sensor != null ? Results.Ok(sensor) : Results.NotFound();
+}).WithName("GetSensor");
 
-// Создание устройства
-devicesGroup.MapPost("/", async (HttpRequest request) =>
+// Создание сенсора
+sensorsGroup.MapPost("/", async (SensorCreate request, IDbConnection db) =>
 {
-    using var reader = new StreamReader(request.Body);
-    var deviceData = await reader.ReadToEndAsync();
+    var newSensor = new Sensor
+    {
+        Name = request.Name,
+        Type = request.Type,
+        Location = request.Location,
+        Value = request.Value,
+        Unit = request.Unit,
+        Status = request.Status,
+        LastUpdated = DateTime.UtcNow,
+        CreatedAt = DateTime.UtcNow
+    };
+
+    var createdSensor = await db.QuerySingleAsync<Sensor>(
+        "INSERT INTO sensors (name, type, location, value, unit, status, last_updated, created_at) " +
+        "VALUES (@Name, @Type, @Location, @Value, @Unit, @Status, @LastUpdated, @CreatedAt) " +
+        "RETURNING *", newSensor);
     
-    return Results.CreatedAtRoute(
-        "GetDevice", 
-        new { id = 1 }, 
-        JsonSerializer.Deserialize<object>(deviceData));
+    return Results.CreatedAtRoute("GetSensor", new { id = createdSensor.Id }, createdSensor);
 });
 
-// Обновление устройства
-devicesGroup.MapPut("/{id}", async (int id, HttpRequest request) =>
+// Обновление сенсора
+sensorsGroup.MapPut("/{id}", async (int id, SensorUpdate request, IDbConnection db) =>
 {
-    using var reader = new StreamReader(request.Body);
-    await reader.ReadToEndAsync();
+    var updatedSensor = await db.QueryFirstOrDefaultAsync<Sensor>(
+        "UPDATE sensors SET " +
+        "name = COALESCE(@Name, name), " +
+        "type = COALESCE(@Type, type), " +
+        "location = COALESCE(@Location, location), " +
+        "value = COALESCE(@Value, value), " +
+        "unit = COALESCE(@Unit, unit), " +
+        "status = COALESCE(@Status, status), " +
+        "last_updated = NOW() " +  // Используем функцию БД для времени
+        "WHERE id = @Id " +
+        "RETURNING *", 
+        new {
+            Id = id,
+            request.Name,
+            request.Type,
+            request.Location,
+            Value = (float?)request.Value,  // Приводим к nullable float
+            request.Unit,
+            request.Status
+        });
     
-    return Results.NoContent();
+    return updatedSensor != null ? Results.Ok(updatedSensor) : Results.NotFound();
 });
 
-// Удаление устройства
-devicesGroup.MapDelete("/{id}", (int id) =>
+// Удаление сенсора
+sensorsGroup.MapDelete("/{id}", async (int id, IDbConnection db) =>
 {
-    return Results.NoContent();
+    var deleted = await db.ExecuteAsync(
+        "DELETE FROM sensors WHERE id = @Id", new { Id = id });
+    return deleted > 0 ? Results.NoContent() : Results.NotFound();
 });
 
 app.Run();
+
+public class Sensor
+{
+    public int Id { get; set; }
+    public required string Name { get; set; }
+    public required string Type { get; set; }
+    public required string Location { get; set; }
+    public float Value { get; set; }
+    public string? Unit { get; set; }
+    public string Status { get; set; } = "inactive";
+    public DateTime LastUpdated { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SensorCreate
+{
+    public required string Name { get; set; }
+    public required string Type { get; set; }
+    public required string Location { get; set; }
+    public float Value { get; set; }
+    public string? Unit { get; set; }
+    public string Status { get; set; } = "inactive";
+}
+
+public class SensorUpdate
+{
+    public string? Name { get; set; }
+    public string? Type { get; set; }
+    public string? Location { get; set; }
+    public float? Value { get; set; }
+    public string? Unit { get; set; }
+    public string? Status { get; set; }
+}

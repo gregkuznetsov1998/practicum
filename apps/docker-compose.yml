@@ -61,6 +61,8 @@ services:
     ports:
       - "8082:8080"
     restart: unless-stopped
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=smarthome;Username=postgres;Password=postgres
     networks:
       - smarthome-network
 
