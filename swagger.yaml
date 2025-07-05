@@ -1,0 +1,497 @@
+openapi: 3.0.0
+info:
+  title: Smart Home API
+  description: |
+    Complete API documentation for Smart Home System
+    - Device Management (C# service)
+    - Telemetry Operations (Node.js service)
+    - Temperature Data (Go service)
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development environment
+  - url: https://smarthome.example.com/api/v1
+    description: Production environment
+
+tags:
+  - name: Sensors
+    description: Sensor management operations
+  - name: Telemetry
+    description: Sensor readings and measurements
+  - name: Temperature
+    description: External temperature data
+  - name: System
+    description: System health and status
+
+paths:
+  # ======================
+  # Device Service (C#)
+  # ======================
+  /sensors:
+    get:
+      tags: [Sensors]
+      summary: Get all sensors
+      description: Retrieve a list of all registered sensors
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sensor'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    post:
+      tags: [Sensors]
+      summary: Create a new sensor
+      description: Register a new sensor in the system
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SensorCreate'
+      responses:
+        '201':
+          description: Sensor created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sensor'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /sensors/{id}:
+    get:
+      tags: [Sensors]
+      summary: Get sensor by ID
+      description: Retrieve detailed information about a specific sensor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Numeric ID of the sensor
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sensor'
+        '404':
+          description: Sensor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    put:
+      tags: [Sensors]
+      summary: Update sensor
+      description: Update existing sensor information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Numeric ID of the sensor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SensorUpdate'
+      responses:
+        '200':
+          description: Sensor updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sensor'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Sensor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    delete:
+      tags: [Sensors]
+      summary: Delete sensor
+      description: Remove a sensor from the system
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Numeric ID of the sensor
+      responses:
+        '204':
+          description: Sensor deleted
+        '404':
+          description: Sensor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ======================
+  # Telemetry Service (Node.js)
+  # ======================
+  /sensors/{id}/value:
+    patch:
+      tags: [Telemetry]
+      summary: Update sensor value
+      description: Update current value and status of a sensor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Numeric ID of the sensor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                value:
+                  type: number
+                  format: float
+                  description: New sensor value
+                  example: 23.5
+                status:
+                  type: string
+                  description: Current status of the sensor
+                  example: active
+              required:
+                - value
+                - status
+      responses:
+        '200':
+          description: Value updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Sensor value updated
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Sensor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ======================
+  # Temperature API (Go)
+  # ======================
+  /sensors/temperature/{location}:
+    get:
+      tags: [Temperature]
+      summary: Get temperature by location
+      description: Retrieve current temperature data for a specific location
+      parameters:
+        - name: location
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Location identifier
+          example: living_room
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemperatureData'
+        '404':
+          description: Location not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ======================
+  # Health Checks
+  # ======================
+  /health:
+    get:
+      tags: [System]
+      summary: System health check
+      description: Check the health status of the API Gateway
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+
+  /health/device-service:
+    get:
+      tags: [System]
+      summary: Device service health check
+      description: Check the health status of the Device Service
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+
+  /health/telemetry-service:
+    get:
+      tags: [System]
+      summary: Telemetry service health check
+      description: Check the health status of the Telemetry Service
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+
+  /health/temperature-api:
+    get:
+      tags: [System]
+      summary: Temperature API health check
+      description: Check the health status of the Temperature API
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+
+components:
+  schemas:
+    Sensor:
+      type: object
+      required:
+        - id
+        - name
+        - type
+        - location
+        - status
+      properties:
+        id:
+          type: integer
+          description: Unique identifier of the sensor
+          example: 1
+        name:
+          type: string
+          description: Human-readable name of the sensor
+          example: Living Room Temperature
+        type:
+          type: string
+          description: Type of the sensor
+          example: Temperature
+          enum: [Temperature, Humidity, Motion, Contact]
+        location:
+          type: string
+          description: Physical location of the sensor
+          example: Living Room
+        value:
+          type: number
+          format: float
+          description: Current sensor value
+          example: 22.5
+        unit:
+          type: string
+          description: Measurement unit
+          example: C
+        status:
+          type: string
+          description: Operational status
+          example: active
+          enum: [active, inactive, warning, error]
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp of last update
+          example: 2023-10-05T14:30:00Z
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: 2023-09-15T08:00:00Z
+
+    SensorCreate:
+      type: object
+      required:
+        - name
+        - type
+        - location
+      properties:
+        name:
+          type: string
+          example: Kitchen Motion Sensor
+        type:
+          type: string
+          example: Motion
+        location:
+          type: string
+          example: Kitchen
+        value:
+          type: number
+          format: float
+          example: 0
+        unit:
+          type: string
+          example: null
+        status:
+          type: string
+          example: inactive
+
+    SensorUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Updated Sensor Name
+        type:
+          type: string
+          example: Humidity
+        location:
+          type: string
+          example: Bedroom
+        value:
+          type: number
+          format: float
+          example: 45.0
+        unit:
+          type: string
+          example: "%"
+        status:
+          type: string
+          example: active
+
+    TemperatureData:
+      type: object
+      required:
+        - location
+        - value
+        - unit
+      properties:
+        location:
+          type: string
+          example: Living Room
+        value:
+          type: number
+          format: float
+          example: 22.5
+        unit:
+          type: string
+          example: C
+        status:
+          type: string
+          example: active
+        timestamp:
+          type: string
+          format: date-time
+          example: 2023-10-05T14:35:00Z
+        description:
+          type: string
+          example: Current temperature in living room
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: Sensor not found
+        code:
+          type: integer
+          description: HTTP status code
+          example: 404
+        details:
+          type: string
+          description: Additional error details
+          example: No sensor found with ID 999
+
+securitySchemes:
+  ApiKeyAuth:
+    type: apiKey
+    in: header
+    name: X-API-Key
+    description: API key for authentication
+
+security:
+  - ApiKeyAuth: []

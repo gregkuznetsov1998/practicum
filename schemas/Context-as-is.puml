@@ -1,0 +1,18 @@
+@startuml
+title Monolith Context Diagram
+
+title Система Умного Дома - Контекстная диаграмма
+
+top to bottom direction
+
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+Person(user, "User", "Пользователь умного дома")
+System(Monolith, "Monolith", "Система управления датчиками")
+
+System_Ext(sensor, "Sensor", "Контроль температуры")
+
+Rel(user, Monolith, "Получает данные о температуре")
+Rel(Monolith, sensor, "Получает данные о температуре")
+
+@enduml
