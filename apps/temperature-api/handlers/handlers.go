@@ -21,10 +21,6 @@ type TemperatureResponse struct {
 
 func RegisterRoutes(router *gin.RouterGroup) {
 	router.Handle("GET", "/temperature", GetTemperature)
-	// sensors := router.Group("/")
-	// {
-	// 	sensors.GET("temperature", GetTemperature)
-	// }
 }
 
 func GetTemperature(c *gin.Context) {
