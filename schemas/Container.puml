@@ -1,0 +1,26 @@
+@startuml ContainersDiagram
+!include <C4/C4_Container>
+
+title Система Умного Дома - Контейнерная диаграмма
+
+Person(admin, "Администратор", "Управляет системой умного дома")
+Person(user, "Пользователь", "Взаимодействует с устройствами")
+
+System_Boundary(smarthome, "Умный Дом") {
+    Container(app, "API Gateway", "Go, Gin", "Основной шлюз API")
+    Container(devices, "Сервис устройств", "C#, ASP.NET Core", "Управление сенсорами (CRUD)")
+    Container(telemetry, "Сервис телеметрии", "Node.js, Express", "Обработка показаний сенсоров")
+    Container(temperature_api, "Temperature API", "Go", "Предоставление данных о температуре")
+    ContainerDb(postgres, "База данных", "PostgreSQL", "Хранение всех данных сенсоров")
+}
+
+Rel(admin, app, "Управляет", "HTTPS")
+Rel(user, app, "Просматривает", "HTTPS")
+Rel(app, devices, "Перенаправление запросов", "HTTP/REST")
+Rel(app, telemetry, "Перенаправление запросов", "HTTP/REST")
+Rel(devices, postgres, "Чтение/запись метаданных", "Npgsql/Dapper")
+Rel(telemetry, postgres, "Чтение/запись показаний", "pg/node-postgres")
+Rel(telemetry, temperature_api, "Получение данных о температуре", "HTTP/REST")
+Rel(temperature_api, postgres, "Хранение исторических данных", "JDBC")
+
+@enduml

@@ -1,0 +1,25 @@
+@startuml ContextDiagram
+!include <C4/C4_Context>
+
+title Система Умного Дома - Контекстная диаграмма
+
+Person(admin, "Администратор", "Управляет системой умного дома")
+Person(user, "Пользователь", "Взаимодействует с устройствами")
+
+System_Boundary(smarthome, "Умный Дом") {
+    System(app, "API Gateway", "Go приложение")
+    System(devices, "Сервис устройств (C#)", "Управление сенсорами")
+    System(telemetry, "Сервис телеметрии (Node.js)", "Сбор и обработка данных")
+    System(temperature_api, "Temperature API", "Внешний сервис температуры")
+    SystemDb(postgres, "База данных", "PostgreSQL")
+}
+
+Rel(admin, app, "Управляет устройствами", "HTTP")
+Rel(user, app, "Просматривает данные", "HTTP")
+Rel(app, devices, "Запросы устройств", "HTTP")
+Rel(app, telemetry, "Запросы телеметрии", "HTTP")
+Rel(devices, postgres, "Хранение метаданных сенсоров", "JDBC")
+Rel(telemetry, postgres, "Хранение показаний", "JDBC (опционально)")
+Rel(telemetry, temperature_api, "Получение температуры", "HTTP")
+
+@enduml

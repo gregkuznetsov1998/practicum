@@ -9,23 +9,12 @@ import (
 	"syscall"
 	"time"
 
-	"smarthome/db"
-	"smarthome/handlers"
+	"temperature-api/handlers"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	// Set up database connection
-	dbURL := getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/smarthome")
-	database, err := db.New(dbURL)
-	if err != nil {
-		log.Fatalf("Unable to connect to database: %v\n", err)
-	}
-	defer database.Close()
-
-	log.Println("Connected to database successfully")
-
 	// Initialize router
 	router := gin.Default()
 
@@ -37,13 +26,14 @@ func main() {
 	})
 
 	// API routes
-	apiRoutes := router.Group("/api/v1")
+	apiRoutes := router.Group("")
 
-	handlers.RegisterSensorRoutes(apiRoutes)
+	// Register routes
+	handlers.RegisterRoutes(apiRoutes)
 
 	// Start server
 	srv := &http.Server{
-		Addr:    getEnv("PORT", ":8080"),
+		Addr:    getEnv("PORT", ":8081"),
 		Handler: router,
 	}
 

@@ -1,0 +1,89 @@
+@startuml DeviceServiceCodeDiagram
+
+title Device Service (C#) - Диаграмма уровня кода
+
+package "Device Service" {
+  class Program {
+    + Main() : void
+    - ConfigureServices(IServiceCollection services) : void
+    - ConfigureEndpoints(WebApplication app) : void
+  }
+  
+  class SensorEndpoints {
+    + GetAllSensors(IDbConnection db) : IResult
+    + GetSensorById(int id, IDbConnection db) : IResult
+    + CreateSensor(SensorCreate request, IDbConnection db) : IResult
+    + UpdateSensor(int id, SensorUpdate request, IDbConnection db) : IResult
+    + DeleteSensor(int id, IDbConnection db) : IResult
+  }
+  
+  class DatabaseInitializer {
+    + Initialize(IDbConnection db) : void
+  }
+}
+
+package "Data Models" {
+  class Sensor {
+    + int Id
+    + string Name
+    + string Type
+    + string Location
+    + float Value
+    + string? Unit
+    + string Status
+    + DateTime LastUpdated
+    + DateTime CreatedAt
+  }
+  
+  class SensorCreate {
+    + string Name
+    + string Type
+    + string Location
+    + float Value
+    + string? Unit
+    + string Status
+  }
+  
+  class SensorUpdate {
+    + string? Name
+    + string? Type
+    + string? Location
+    + float? Value
+    + string? Unit
+    + string? Status
+  }
+}
+
+' Relationships
+Program --> SensorEndpoints : "Регистрирует\nэндпоинты"
+SensorEndpoints --> Sensor : "Возвращает"
+SensorEndpoints --> SensorCreate : "Принимает"
+SensorEndpoints --> SensorUpdate : "Принимает"
+SensorEndpoints --> DatabaseInitializer : "Использует для\nинициализации БД"
+DatabaseInitializer --> Sensor : "Создает\nструктуру"
+
+' Notes
+note top of Program
+  **Точка входа:**
+  - Конфигурирует сервисы
+  - Настраивает конечные точки
+  - Инициализирует БД
+end note
+
+note top of SensorEndpoints
+  **CRUD операции:**
+  - GET /api/v1/sensors
+  - GET /api/v1/sensors/{id}
+  - POST /api/v1/sensors
+  - PUT /api/v1/sensors/{id}
+  - DELETE /api/v1/sensors/{id}
+end note
+
+note top of DatabaseInitializer
+  **Инициализация БД:**
+  1. Создает таблицу sensors
+  2. Добавляет тестовые данные
+  3. Использует Dapper для запросов
+end note
+
+@enduml

@@ -1,0 +1,65 @@
+@startuml ComponentDiagram
+!include <C4/C4_Component>
+!include <C4/C4_Context>
+
+title Система Умного Дома - Диаграмма компонентов
+
+Container_Boundary(api_gateway, "API Gateway (Go)") {
+    Component(router, "Sensor Router", "Gin", "Маршрутизация запросов")
+    Component(forwarder, "Request Forwarder", "HTTP Client", "Перенаправление в микросервисы")
+    Component(auth_middleware, "Auth Middleware", "JWT", "Базовая аутентификация")
+}
+
+Container_Boundary(device_service, "Device Service (C#)") {
+    Component(device_api, "Device API", "Minimal API", "CRUD операции сенсоров")
+    Component(sensor_repository, "Sensor Repository", "Dapper", "Работа с PostgreSQL")
+    Component(db_init, "DB Initializer", "SQL", "Инициализация таблиц")
+}
+
+Container_Boundary(telemetry_service, "Telemetry Service (Node.js)") {
+    Component(telemetry_api, "Telemetry API", "Express", "Обработка показаний")
+    Component(device_client, "Device Client", "Axios", "Запросы метаданных")
+    Component(temp_client, "Temperature Client", "Axios", "Запросы температуры")
+}
+
+Container_Boundary(temperature_api, "Temperature API (Go)") {
+    Component(temp_api, "Temperature Endpoints", "Gin", "API температуры")
+}
+
+ContainerDb(postgres, "PostgreSQL", "База данных", "Хранение данных сенсоров")
+
+' Внутренние связи API Gateway
+Rel(router, forwarder, "Перенаправление", "HTTP")
+Rel(auth_middleware, router, "Аутентификация", "")
+
+' Связи Device Service
+Rel(device_api, sensor_repository, "SQL запросы", "")
+Rel(sensor_repository, postgres, "Данные", "Npgsql")
+Rel(db_init, postgres, "Инициализация", "SQL")
+
+' Связи Telemetry Service
+Rel(telemetry_api, device_client, "Метаданные сенсора", "HTTP")
+Rel(telemetry_api, temp_client, "Температурные данные", "HTTP")
+Rel(device_client, device_service, "", "HTTP/REST")
+Rel(temp_client, temperature_api, "", "HTTP/REST")
+
+' Внешние связи
+Rel(forwarder, device_service, "CRUD запросы", "HTTP/REST")
+Rel(forwarder, telemetry_service, "Запросы показаний", "HTTP/REST")
+
+' Внешние пользователи
+Person(admin, "Администратор", "Управляет системой")
+Person(user, "Пользователь", "Просматривает данные")
+
+Rel(admin, api_gateway, "Управление", "HTTPS")
+Rel(user, api_gateway, "Данные", "HTTPS")
+
+' Легенда
+legend top
+  == Типы взаимодействия ==
+  **HTTP** - REST API вызовы
+  **SQL** - Запросы к базе данных
+  **Internal** - Внутрисервисное взаимодействие
+end legend
+
+@enduml
