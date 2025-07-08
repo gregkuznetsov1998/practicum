@@ -1,17 +1,123 @@
 @startuml ERDiagram
-title ER-диаграмма - Управление сенсорами
+title ER-диаграмма - Управление умным домом
+
+' *********************
+' Основные сущности
+' *********************
+
+entity users {
+  *id : INTEGER <<PK>>
+  --
+  *username : VARCHAR(50)
+  *email : VARCHAR(100)
+  *password_hash : VARCHAR(255)
+  created_at : TIMESTAMP
+  last_login : TIMESTAMP
+}
+
+entity houses {
+  *id : INTEGER <<PK>>
+  --
+  *name : VARCHAR(100)
+  address : TEXT
+  *owner_id : INTEGER <<FK>>
+}
+
+entity rooms {
+  *id : INTEGER <<PK>>
+  --
+  *name : VARCHAR(100)
+  *house_id : INTEGER <<FK>>
+  description : TEXT
+}
+
+entity device_types {
+  *id : INTEGER <<PK>>
+  --
+  *name : VARCHAR(50)
+  *description : TEXT
+  *measurement_unit : VARCHAR(20)
+}
 
 entity sensors {
   *id : INTEGER <<PK>>
   --
-  name : VARCHAR(100) <<NN>>
-  type : VARCHAR(50) <<NN>>
-  location : VARCHAR(100) <<NN>>
-  value : FLOAT <<default 0>>
-  unit : VARCHAR(20)
-  status : VARCHAR(20) <<default 'inactive'>>
-  last_updated : TIMESTAMP <<default CURRENT_TIMESTAMP>>
-  created_at : TIMESTAMP <<default CURRENT_TIMESTAMP>>
+  *name : VARCHAR(100)
+  *type_id : INTEGER <<FK>>
+  *room_id : INTEGER <<FK>>
+  *status : VARCHAR(20)
+  installation_date : DATE
+  last_maintenance : DATE
 }
+
+entity telemetry_data {
+  *id : BIGINT <<PK>>
+  --
+  *sensor_id : INTEGER <<FK>>
+  *value : FLOAT
+  *timestamp : TIMESTAMP
+  quality : VARCHAR(20)
+}
+
+' *********************
+' Связи между сущностями
+' *********************
+
+users ||--o{ houses : "owns"
+houses ||--o{ rooms : "contains"
+rooms ||--o{ sensors : "located_in"
+device_types ||--o{ sensors : "classified_as"
+sensors ||--o{ telemetry_data : "produces"
+
+' *********************
+' Примеры данных
+' *********************
+
+note top of users
+  Примеры данных:
+  | id | username | email               | created_at          |
+  | 1  | ivanov   | ivanov@example.com | 2023-01-15 10:00:00 |
+  | 2  | petrova  | petrova@mail.com   | 2023-02-20 14:30:00 |
+end note
+
+note top of houses
+  Примеры данных:
+  | id | name      | address                   | owner_id |
+  | 1  | Дача      | Ленинградская обл., д. 15 | 1        |
+  | 2  | Квартира  | Москва, ул. Ленина, 25    | 2        |
+end note
+
+note top of rooms
+  Примеры данных:
+  | id | name          | house_id | description       |
+  | 1  | Гостиная      | 1        | Основное помещение|
+  | 2  | Спальня       | 1        | Главная спальня   |
+  | 3  | Кухня         | 2        | Кухня-студия      |
+end note
+
+note top of device_types
+  Примеры данных:
+  | id | name        | description           | measurement_unit |
+  | 1  | Температура | Датчик температуры    | °C               |
+  | 2  | Влажность   | Датчик влажности      | %                |
+  | 3  | Движение    | Датчик движения       | -                |
+  | 4  | Освещение   | Датчик освещенности   | lux              |
+end note
+
+note top of sensors
+  Примеры данных:
+  | id | name                 | type_id | room_id | status  | installation_date |
+  | 1  | Температура в гост.  | 1       | 1       | active  | 2023-03-10        |
+  | 2  | Влажность в спальне  | 2       | 2       | active  | 2023-03-12        |
+  | 3  | Движение на кухне    | 3       | 3       | warning | 2023-04-01        |
+end note
+
+note top of telemetry_data
+  Примеры данных:
+  | id | sensor_id | value | timestamp           | quality |
+  | 1  | 1         | 22.5  | 2023-10-05 14:30:00 | good    |
+  | 2  | 1         | 22.3  | 2023-10-05 14:35:00 | good    |
+  | 3  | 2         | 45.0  | 2023-10-05 14:30:00 | medium  |
+end note
 
 @enduml

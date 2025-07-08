@@ -1,11 +1,13 @@
 using System.Data;
 using Dapper;
-using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IDbConnection>(_ => 
     new NpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 var app = builder.Build();
 
 app.MapGet("/health", () => "OK");
@@ -17,7 +19,8 @@ var sensorsGroup = app.MapGroup("api/v1/sensors");
 // Получение всех сенсоров
 sensorsGroup.MapGet("/", async (IDbConnection db) =>
 {
-    var sensors = await db.QueryAsync<Sensor>("SELECT * FROM sensors");
+    var sensors = await db.QueryAsync<Sensor>(
+        "SELECT *, last_updated AS lastupdated, created_at AS createdat FROM sensors");
     return Results.Ok(sensors);
 });
 
@@ -25,29 +28,28 @@ sensorsGroup.MapGet("/", async (IDbConnection db) =>
 sensorsGroup.MapGet("/{id}", async (int id, IDbConnection db) =>
 {
     var sensor = await db.QueryFirstOrDefaultAsync<Sensor>(
-        "SELECT * FROM sensors WHERE id = @Id", new { Id = id });
+        "SELECT *, last_updated AS lastupdated, created_at AS createdat FROM sensors WHERE id = @Id", new { Id = id });
     return sensor != null ? Results.Ok(sensor) : Results.NotFound();
 }).WithName("GetSensor");
 
 // Создание сенсора
 sensorsGroup.MapPost("/", async (SensorCreate request, IDbConnection db) =>
 {
-    var newSensor = new Sensor
+    var insertParams = new 
     {
-        Name = request.Name,
-        Type = request.Type,
-        Location = request.Location,
-        Value = request.Value,
-        Unit = request.Unit,
-        Status = request.Status,
-        LastUpdated = DateTime.UtcNow,
-        CreatedAt = DateTime.UtcNow
+        request.Name,
+        request.Type,
+        request.Location,
+        request.Value,
+        request.Unit,
+        request.Status
     };
 
     var createdSensor = await db.QuerySingleAsync<Sensor>(
-        "INSERT INTO sensors (name, type, location, value, unit, status, last_updated, created_at) " +
-        "VALUES (@Name, @Type, @Location, @Value, @Unit, @Status, @LastUpdated, @CreatedAt) " +
-        "RETURNING *", newSensor);
+        "INSERT INTO sensors (name, type, location, value, unit, status) " +
+        "VALUES (@Name, @Type, @Location, @Value, @Unit, @Status) " +
+        "RETURNING *", 
+        insertParams);
     
     return Results.CreatedAtRoute("GetSensor", new { id = createdSensor.Id }, createdSensor);
 });
@@ -98,6 +100,7 @@ public class Sensor
     public float Value { get; set; }
     public string? Unit { get; set; }
     public string Status { get; set; } = "inactive";
+    
     public DateTime LastUpdated { get; set; }
     public DateTime CreatedAt { get; set; }
 }
